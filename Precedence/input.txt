@@ -1,0 +1,9 @@
+E 6 ()*+x ETP
+E E+T
+E T
+T T*P
+T P
+P (E)
+P x
+
+(x+x)*x+x*(x+(x*x))
