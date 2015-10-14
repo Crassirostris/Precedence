@@ -11,8 +11,6 @@ Both parameters are optional.
 
 ### Input Format
 
-First line:
-
 ```
 <axiom> <number_of_rules> <terminals> <nonterminals>
 <rule_1_left_side> <rule_1_right_side>
