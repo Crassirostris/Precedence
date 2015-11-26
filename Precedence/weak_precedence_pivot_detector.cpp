@@ -1,6 +1,7 @@
 #include "weak_precedence_pivot_detector.h"
 #include <stdexcept>
 #include <set>
+#include <sstream>
 
 WeakPrecedencePivotDetector WeakPrecedencePivotDetector::CreateFromGrammar(Grammar &grammar) {
 	std::unordered_map<char, std::unordered_set<std::string>> rules_bucketed;
@@ -50,6 +51,53 @@ bool WeakPrecedencePivotDetector::IsPivot(std::vector<char> &stack, std::vector<
 		return true;
 	}
 	return false;
+}
+
+std::string WeakPrecedencePivotDetector::Serialize() {
+    std::ostringstream ss;
+    ss << (IsSimplePrecedence() ? "Simple" : "Weak") << " precedence grammar" << std::endl;
+    std::set<char> alphabet;
+    for (auto j = precedence_table_.begin(); j != precedence_table_.end(); ++j) {
+        alphabet.insert(j->first);
+        for (auto k = j->second.begin(); k != j->second.end(); ++k)
+            alphabet.insert(j->first);
+    }
+    ss << "  ";
+    for (auto j = alphabet.begin(); j != alphabet.end(); ++j)
+        ss << ' ' << *j;
+    ss << std::endl;
+    for (auto j = alphabet.begin(); j != alphabet.end(); ++j) {
+        ss << ' ' << *j;
+        for (auto k = alphabet.begin(); k != alphabet.end(); ++k) {
+            switch (precedence_table_[*j][*k]) {
+                case None:
+                    ss << "  ";
+                    break;
+                case Less:
+                    ss << " <";
+                    break;
+                case Greater:
+                    ss << " >";
+                    break;
+                case Equal:
+                    ss << " =";
+                    break;
+                case LessEqual:
+                    ss << " ?";
+                    break;
+            }
+        }
+        ss << std::endl;
+    }
+    return ss.str();
+}
+
+bool WeakPrecedencePivotDetector::IsSimplePrecedence() {
+    for (auto j = precedence_table_.begin(); j != precedence_table_.end(); ++j)
+        for (auto k = j->second.begin(); k != j->second.end(); ++k)
+            if (k->second == LessEqual)
+                return false;
+    return true;
 }
 
 std::unordered_map<char, std::unordered_set<char>> WeakPrecedencePivotDetector::CreateHeadPlus(Grammar& grammar,

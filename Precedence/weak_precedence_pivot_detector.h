@@ -17,7 +17,10 @@ public:
 
 	bool IsPivot(std::vector<char> &stack, std::vector<char> &input, int &length, char &substisution) const override;
 
+    std::string Serialize();
 private:
+    bool IsSimplePrecedence();
+
 	WeakPrecedencePivotDetector(std::unordered_map<char, std::unordered_map<char, Precedence>> precedence_table, Grammar grammar)
 		: precedence_table_(precedence_table), grammar_(grammar) { }
 
