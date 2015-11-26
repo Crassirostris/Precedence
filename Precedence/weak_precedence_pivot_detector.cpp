@@ -57,11 +57,10 @@ std::string WeakPrecedencePivotDetector::Serialize() {
     std::ostringstream ss;
     ss << (IsSimplePrecedence() ? "Simple" : "Weak") << " precedence grammar" << std::endl;
     std::set<char> alphabet;
-    for (auto j = precedence_table_.begin(); j != precedence_table_.end(); ++j) {
-        alphabet.insert(j->first);
-        for (auto k = j->second.begin(); k != j->second.end(); ++k)
-            alphabet.insert(j->first);
-    }
+    for (char ch : grammar_.terminals)
+        alphabet.insert(ch);
+    for (char ch : grammar_.nonterminals)
+        alphabet.insert(ch);
     ss << "  ";
     for (auto j = alphabet.begin(); j != alphabet.end(); ++j)
         ss << ' ' << *j;
@@ -69,6 +68,11 @@ std::string WeakPrecedencePivotDetector::Serialize() {
     for (auto j = alphabet.begin(); j != alphabet.end(); ++j) {
         ss << ' ' << *j;
         for (auto k = alphabet.begin(); k != alphabet.end(); ++k) {
+            if (precedence_table_.find(*j) == precedence_table_.end()
+                    || precedence_table_[*j].find(*k) == precedence_table_[*j].end()) {
+                ss << "  ";
+                continue;
+            }
             switch (precedence_table_[*j][*k]) {
                 case None:
                     ss << "  ";
