@@ -57,14 +57,19 @@ int main(int argc, char **argv) {
 
 		std::string input_string;
 		while (*input >> input_string) {
-            auto deriviation = algorithm.Parse(input_string);
+            try {
+                auto deriviation = algorithm.Parse(input_string);
 
-            for (auto j = deriviation.begin(); j != deriviation.end(); ++j)
-                *output << *j << std::endl;
-            *output << std::endl;
+                for (auto j = deriviation.begin(); j != deriviation.end(); ++j)
+                    *output << *j << std::endl;
+                *output << std::endl;
+            }
+            catch (std::exception &e) {
+                *output << e.what() << std::endl;
+                return 1;
+            }
 		}
 	} catch (std::exception &e) {
-		std::cerr << e.what() << std::endl;
 		*output << e.what() << std::endl;
 		return 1;
 	}
