@@ -152,6 +152,7 @@
     <ClInclude Include="grammar.h" />
     <ClInclude Include="pivot_detector_interface.h" />
     <ClInclude Include="shift_reduce_algorithm.h" />
+    <ClInclude Include="string_helper.h" />
     <ClInclude Include="weak_precedence_pivot_detector.h" />
   </ItemGroup>
   <ItemGroup>
