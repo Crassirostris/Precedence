@@ -36,17 +36,11 @@ WeakPrecedencePivotDetector WeakPrecedencePivotDetector::CreateFromGrammar(Gramm
 				if (set.size() == 2 && set.find(Less) != set.end() && set.find(Equal) != set.end())
 					precedence_table[i->first][j->first] = LessEqual;
 				else
-					throw std::invalid_argument(std::string("Not a Wirth–Weber precedence grammar, symbols ")
-						+ i->first + " and " + j->first + " have multiple relations");
+					precedence_table[i->first][j->first] = Invalid;
 			}
 		}
 
-    auto result = WeakPrecedencePivotDetector(precedence_table, grammar);
-
-    if (!result.IsSimplePrecedence() && !result.AdditionalRuleSatisfies())
-        throw std::invalid_argument(std::string("Not a weak precedence grammar"));
-
-    return result;
+	return WeakPrecedencePivotDetector(precedence_table, grammar);
 }
 
 bool WeakPrecedencePivotDetector::IsPivot(std::vector<char> &stack, std::vector<char> &input, int &length, char &substisution) const {
@@ -60,74 +54,90 @@ bool WeakPrecedencePivotDetector::IsPivot(std::vector<char> &stack, std::vector<
 	return false;
 }
 
+void WeakPrecedencePivotDetector::AssertCorrectness() {
+	for (auto &i : precedence_table_) {
+		for (auto &j: i.second) {
+			if (j.second == Invalid) {
+				throw std::invalid_argument(std::string("Not a weak precedence grammar, symbols ")
+					+ i.first + " and " + j.first + " have forbidden relations");
+			}
+		}
+	}
+
+	if (!IsSimplePrecedence() && !AdditionalRuleSatisfies())
+		throw std::invalid_argument(std::string("Not a weak precedence grammar"));
+}
+
 std::string WeakPrecedencePivotDetector::Serialize() {
-    std::ostringstream ss;
-    ss << (IsSimplePrecedence() ? "Simple" : "Weak") << " precedence grammar" << std::endl;
-    std::set<char> alphabet;
-    for (char ch : grammar_.terminals)
-        alphabet.insert(ch);
-    for (char ch : grammar_.nonterminals)
-        alphabet.insert(ch);
-    ss << "  ";
-    for (auto j = alphabet.begin(); j != alphabet.end(); ++j)
-        ss << ' ' << *j;
-    ss << std::endl;
-    for (auto j = alphabet.begin(); j != alphabet.end(); ++j) {
-        ss << ' ' << *j;
-        for (auto k = alphabet.begin(); k != alphabet.end(); ++k) {
-            if (precedence_table_.find(*j) == precedence_table_.end()
-                    || precedence_table_[*j].find(*k) == precedence_table_[*j].end()) {
-                ss << "  ";
-                continue;
-            }
-            switch (precedence_table_[*j][*k]) {
-                case None:
-                    ss << "  ";
-                    break;
-                case Less:
-                    ss << " <";
-                    break;
-                case Greater:
-                    ss << " >";
-                    break;
-                case Equal:
-                    ss << " =";
-                    break;
-                case LessEqual:
-                    ss << " ?";
-                    break;
-            }
-        }
-        ss << std::endl;
-    }
-    return ss.str();
+	std::ostringstream ss;
+	ss << (IsSimplePrecedence() ? "Simple" : "Weak") << " precedence grammar" << std::endl;
+	std::set<char> alphabet;
+	for (char ch : grammar_.terminals)
+		alphabet.insert(ch);
+	for (char ch : grammar_.nonterminals)
+		alphabet.insert(ch);
+	ss << "  ";
+	for (auto j = alphabet.begin(); j != alphabet.end(); ++j)
+		ss << "  " << *j;
+	ss << std::endl;
+	for (auto j = alphabet.begin(); j != alphabet.end(); ++j) {
+		ss << ' ' << *j;
+		for (auto k = alphabet.begin(); k != alphabet.end(); ++k) {
+			if (precedence_table_.find(*j) == precedence_table_.end()
+					|| precedence_table_[*j].find(*k) == precedence_table_[*j].end()) {
+				ss << "   ";
+				continue;
+			}
+			switch (precedence_table_[*j][*k]) {
+				case None:
+					ss << "   ";
+					break;
+				case Less:
+					ss << "  <";
+					break;
+				case Greater:
+					ss << "  >";
+					break;
+				case Equal:
+					ss << "  =";
+					break;
+				case LessEqual:
+					ss << " <=";
+					break;
+				default:
+					ss << "  ?";
+			}
+		}
+		ss << std::endl;
+	}
+	return ss.str();
 }
 
 bool WeakPrecedencePivotDetector::IsSimplePrecedence() {
-    for (auto j = precedence_table_.begin(); j != precedence_table_.end(); ++j)
-        for (auto k = j->second.begin(); k != j->second.end(); ++k)
-            if (k->second == LessEqual)
-                return false;
-    return true;
+	for (auto j = precedence_table_.begin(); j != precedence_table_.end(); ++j)
+		for (auto k = j->second.begin(); k != j->second.end(); ++k)
+			if (k->second == LessEqual)
+				return false;
+	return true;
 }
 
 bool WeakPrecedencePivotDetector::AdditionalRuleSatisfies() {
-    for (auto &rule : grammar_.rules) {
-        for (auto &other_rule: grammar_.rules)
-            if (StringHelper::EndsWith(other_rule.product, rule.product)
-                    && rule.product.length() < other_rule.product.length()) {
-                auto x = other_rule.product[other_rule.product.length() - rule.product.length() - 1];
-                auto row = precedence_table_.find(x);
-                if (row == precedence_table_.end())
-                    continue;
-                auto precedence_it = row->second.find(rule.nonterminal);
-                if (precedence_it == row->second.end())
-                    continue;
-                if (precedence_it->second != None && precedence_it->second != Greater)
-                    return false;
-            }
-    }
-    return true;
+	for (auto &rule : grammar_.rules) {
+		for (auto &other_rule: grammar_.rules)
+			if (StringHelper::EndsWith(other_rule.product, rule.product)
+					&& rule.product.length() < other_rule.product.length()) {
+				auto x = other_rule.product[other_rule.product.length() - rule.product.length() - 1];
+				auto row = precedence_table_.find(x);
+				if (row == precedence_table_.end())
+					continue;
+				auto precedence_it = row->second.find(rule.nonterminal);
+				if (precedence_it == row->second.end())
+					continue;
+				if (precedence_it->second != None && precedence_it->second != Greater)
+					return false;
+			}
+	}
+	return true;
 }
 
 std::unordered_map<char, std::unordered_set<char>> WeakPrecedencePivotDetector::CreateHeadPlus(Grammar& grammar,
@@ -141,12 +151,12 @@ std::unordered_map<char, std::unordered_set<char>> WeakPrecedencePivotDetector::
 		changed = false;
 		for (auto i = head_plus.begin(); i != head_plus.end(); ++i) {
 			std::unordered_set<char> to_add;
-            for (auto j = i->second.begin(); j != i->second.end(); ++j) {
-                if (rules_bucketed.find(*j) == rules_bucketed.end())
-                    continue;
-                for (auto r = rules_bucketed[*j].begin(); r != rules_bucketed[*j].end(); ++r)
-                    to_add.insert(r->front());
-            }
+			for (auto j = i->second.begin(); j != i->second.end(); ++j) {
+				if (rules_bucketed.find(*j) == rules_bucketed.end())
+					continue;
+				for (auto r = rules_bucketed[*j].begin(); r != rules_bucketed[*j].end(); ++r)
+					to_add.insert(r->front());
+			}
 			for (auto j = to_add.begin(); j != to_add.end(); ++j) {
 				if (i->second.find(*j) == i->second.end()) {
 					i->second.insert(*j);
