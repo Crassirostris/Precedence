@@ -2,27 +2,30 @@
 
 Program runs with following command line parameters:
 
-`./Precedence.exe [<input_file> [<output_file>]]`
+`./Precedence.exe [-h|--help] [<input_filename> [<output_filename>]]`
 
-Both parameters are optional.
+All parameters are optional.
 
+* `-h|--help` — show help.
 * `<input_file>` — input filename, by default "input.txt"
-* `<output_file>` — output filename, by default "output.txt"
+* `<output_file>` — output filename, by default standard output
 
 ### Input Format
 
 ```
-<axiom> <number_of_rules> <terminals> <nonterminals>
+<axiom>
 <rule_1_left_side> <rule_1_right_side>
 ...
 <rule_n_left_side> <rule_n_right_side>
-
-<string_to_parse>
+_empty_string_
+<string_to_parse_1>
+<string_to_parse_2>
+...
 ```
 
 Example:
 ```
-E 6 ()*+x ETP
+E
 E E+T
 E T
 T T*P
@@ -31,4 +34,5 @@ P (E)
 P x
 
 (x+x)*x+x*(x+(x*x))
+x*x
 ```
