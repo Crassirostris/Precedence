@@ -6,7 +6,7 @@ void ShiftReduceAlgorithm::Reduce(std::vector<char> &stack, std::vector<char> &i
 	std::string rform;
 	rform.resize(stack.size() + input.size());
 	std::copy(stack.begin(), stack.end(), rform.begin());
-	std::copy(input.begin(), input.end(), rform.begin() + stack.size());
+	std::copy(input.begin(), input.end(), rform.rbegin());
 	deriviation.push_back(rform);
 }
 
