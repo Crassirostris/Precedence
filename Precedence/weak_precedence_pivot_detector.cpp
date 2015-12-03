@@ -1,7 +1,9 @@
-#include "weak_precedence_pivot_detector.h"
 #include <stdexcept>
 #include <set>
 #include <sstream>
+
+#include "string_helper.h"
+#include "weak_precedence_pivot_detector.h"
 
 WeakPrecedencePivotDetector WeakPrecedencePivotDetector::CreateFromGrammar(Grammar &grammar) {
 	std::unordered_map<char, std::unordered_set<std::string>> rules_bucketed;
@@ -38,8 +40,13 @@ WeakPrecedencePivotDetector WeakPrecedencePivotDetector::CreateFromGrammar(Gramm
 						+ i->first + " and " + j->first + " have multiple relations");
 			}
 		}
-	
-	return WeakPrecedencePivotDetector(precedence_table, grammar);
+
+    auto result = WeakPrecedencePivotDetector(precedence_table, grammar);
+
+    if (!result.IsSimplePrecedence() && !result.AdditionalRuleSatisfies())
+        throw std::invalid_argument(std::string("Not a weak precedence grammar"));
+
+    return result;
 }
 
 bool WeakPrecedencePivotDetector::IsPivot(std::vector<char> &stack, std::vector<char> &input, int &length, char &substisution) const {
@@ -104,6 +111,25 @@ bool WeakPrecedencePivotDetector::IsSimplePrecedence() {
     return true;
 }
 
+bool WeakPrecedencePivotDetector::AdditionalRuleSatisfies() {
+    for (auto &rule : grammar_.rules) {
+        for (auto &other_rule: grammar_.rules)
+            if (StringHelper::EndsWith(other_rule.product, rule.product)
+                    && rule.product.length() < other_rule.product.length()) {
+                auto x = other_rule.product[other_rule.product.length() - rule.product.length() - 1];
+                auto row = precedence_table_.find(x);
+                if (row == precedence_table_.end())
+                    continue;
+                auto precedence_it = row->second.find(rule.nonterminal);
+                if (precedence_it == row->second.end())
+                    continue;
+                if (precedence_it->second != None && precedence_it->second != Greater)
+                    return false;
+            }
+    }
+    return true;
+}
+
 std::unordered_map<char, std::unordered_set<char>> WeakPrecedencePivotDetector::CreateHeadPlus(Grammar& grammar,
 		std::unordered_map<char, std::unordered_set<std::string>>& rules_bucketed) {
 	std::unordered_map<char, std::unordered_set<char>> head_plus;
@@ -115,9 +141,12 @@ std::unordered_map<char, std::unordered_set<char>> WeakPrecedencePivotDetector::
 		changed = false;
 		for (auto i = head_plus.begin(); i != head_plus.end(); ++i) {
 			std::unordered_set<char> to_add;
-			for (auto j = i->second.begin(); j != i->second.end(); ++j)
-				for (auto r = rules_bucketed[*j].begin(); r != rules_bucketed[*j].end(); ++r)
-					to_add.insert(r->front());
+            for (auto j = i->second.begin(); j != i->second.end(); ++j) {
+                if (rules_bucketed.find(*j) == rules_bucketed.end())
+                    continue;
+                for (auto r = rules_bucketed[*j].begin(); r != rules_bucketed[*j].end(); ++r)
+                    to_add.insert(r->front());
+            }
 			for (auto j = to_add.begin(); j != to_add.end(); ++j) {
 				if (i->second.find(*j) == i->second.end()) {
 					i->second.insert(*j);

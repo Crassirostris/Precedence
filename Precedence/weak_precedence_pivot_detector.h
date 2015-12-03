@@ -21,6 +21,8 @@ public:
 private:
     bool IsSimplePrecedence();
 
+    bool AdditionalRuleSatisfies();
+
 	WeakPrecedencePivotDetector(std::unordered_map<char, std::unordered_map<char, Precedence>> precedence_table, Grammar grammar)
 		: precedence_table_(precedence_table), grammar_(grammar) { }
 
