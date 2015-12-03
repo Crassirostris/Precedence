@@ -1,6 +1,8 @@
-#include "grammar.h"
 #include <algorithm>
 #include <string>
+#include <sstream>
+
+#include "grammar.h"
 
 bool Grammar::ContainsRuleFor(std::string string, char& substisution) const {
 	auto r = std::find_if(rules.begin(), rules.end(),
@@ -12,23 +14,27 @@ bool Grammar::ContainsRuleFor(std::string string, char& substisution) const {
 }
 
 Grammar InputStreamGrammarSerializer::Deserialize(std::istream& input) {
-	char axiom;
-	std::string termials, nonterminals;
-	int rules_count;
-	if (!(input >> axiom >> rules_count >> termials >> nonterminals))
-		throw std::invalid_argument("Failed to read grammar meta information");
+	std::string line;
+	if (!std::getline(input, line) || line.length() < 1)
+		throw std::invalid_argument("Failed to read axiom");
+
 	Grammar grammar;
-	grammar.axiom = axiom;
-	for (auto j = termials.begin(); j != termials.end(); ++j)
-		grammar.terminals.insert(*j);
-	for (auto j = nonterminals.begin(); j != nonterminals.end(); ++j)
-		grammar.nonterminals.insert(*j);
-	for (int i = 0; i < rules_count; ++i) {
+	grammar.axiom = line[0];
+	while (std::getline(input, line) && line.length() > 2) {
+		std::istringstream in(line);
 		char nonterminal;
 		std::string product;
-		if (!(input >> nonterminal >> product))
-			throw std::invalid_argument("Failed to read rule");
+		if (!(in >> nonterminal >> product))
+			throw std::invalid_argument("Failed to read rule " + line);
 		grammar.rules.push_back(Rule(nonterminal, product));
 	}
+
+	for (auto &rule : grammar.rules)
+		grammar.nonterminals.insert(rule.nonterminal);
+	for (auto &rule : grammar.rules)
+		for (auto ch : rule.product)
+			if (grammar.nonterminals.find(ch) == grammar.nonterminals.end())
+				grammar.terminals.insert(ch);
+
 	return grammar;
 }
